@@ -24,8 +24,7 @@ def runBiswebCa2(ipDict):
         raise Exception('At least one of the keys in this dictionary is not an acceptable term for the preprocessing pipeline:',ipDict)
 
 
-    cmd = '{0[pythonPath]} {0[calPreprocPath]} '.format(ipDict)+' '.join(['--%s %s' % kv for kv in ipDict.items()])
-    os.system(cmd)
+    cmd = '{0[pythonPath]} {0[calPreprocPath]} '.format(ipDict)+' '.join(['--%s %s' % kv for kv in ipDict.items() if not any(kv[0] == aT for aT in ['pythonPath','calPreprocPath'])])
 
 
 
@@ -84,10 +83,6 @@ if __name__ == '__main__':
                 ippath=os.path.join(root,f)
                 idPath=root.replace(ipdir,'')
 
-                cellType,ses,animalNum,_=idPath.split('/')
-                fname=f
-                
-
                 # Gather all trigger order csvs in this folder into list
                 csvs=list(sorted(glob.glob(os.path.join(root,'*Optical.csv'))))
                 # Gather all tiffs in this folder into list
@@ -99,11 +94,6 @@ if __name__ == '__main__':
                 partNum = int(partNum.split('-')[-1])+1
 
                 trigFile = ippath.replace('.tif','OpticalOrder.csv')
-
-                oppath=os.path.join(opdir,cellType,ses,animalNum,'ca2/',fname.split('.')[0])
-                if not os.path.isdir(oppath):
-                    os.makedirs(oppath)
-                lastFile = os.path.join(oppath,'blue_out.nii.gz')
 
 
                 # Insert more general ipDict key value pairs
@@ -120,12 +110,12 @@ if __name__ == '__main__':
                 # Insert key value pairs specific to particular images
                 # For the first image in an SLC session, generally acceptable to auto generate mask, also keep this MCRef for later
                 # images in the same session
-                if ('EPI1' in f) and ('part-00' in f) and ('SLC' in f) and not os.path.isfile(lastFile):
+                if ('EPI1' in f) and ('part-00' in f) and ('SLC' in f):
                     ipDict['createmask'] = True
                     ipDict['createmcref'] = True
 
                 # Other images in SLC session; use prior mask and MCRef
-                elif ('EPI1' not in f) and ('part-00' not in f) and (not os.path.isfile(lastFile)) and ('SLC' in f):
+                elif ('EPI1' not in f) and ('part-00' not in f) and ('SLC' in f):
                     ipDict['createmask'] = False
                     ipDict['createmcref'] = False
                     pathToFirst = oppath.replace('EPI'+str(epiNum), 'EPI1').replace('part-0'+str(partNum-1), 'part-00').replace(stim,'REST')
@@ -136,7 +126,7 @@ if __name__ == '__main__':
                     
                 # For non SLC images, that are first in their session, we want to use their MCRef
                 # but we want a human made mask
-                elif ('SLC' not in f) and ('EPI1' in f) and ('part-00' in f) and not os.path.isfile(lastFile):
+                elif ('SLC' not in f) and ('EPI1' in f) and ('part-00' in f):
                     ipDict['createmask'] = False
                     ipDict['createmcref'] = True
                     
@@ -144,7 +134,7 @@ if __name__ == '__main__':
                 
                 # For non SLC images, that are  not first in their session, we want to use prior MCRef
                 # and we want a human made mask
-                elif ('SLC' not in f) and not all([f2 in f for f2 in ['EPI1','part-00']]) and not os.path.isfile(lastFile):
+                elif ('SLC' not in f) and not all([f2 in f for f2 in ['EPI1','part-00']]):
                     ipDict['createmask'] = False
                     ipDict['createmcref'] = False
 
@@ -154,9 +144,14 @@ if __name__ == '__main__':
                     ipDict['mcrefuv'] =  os.path.join(pathToFirst, 'calcium_uv_movie_smooth_mcRef.nii.gz')
                     ipDict['mask'] = os.path.join(humanMadeMasks, cellType+'_'+animalNum+'_'+ses+'_'+dte+'_EPI1_REST_part-00mcRef_maskEdit.nii.gz')
 
+                else:
+                    raise Exception('This tif file doesnt match the expected criteria')
 
+                lastFile = os.path.join(oppath,'blue_out.nii.gz')
 
-
-
-                print('Calculating for ',ippath)
-                runBiswebCa2(ipDict)
+                if not os.path.isfile(lastFile):
+                    oppath=os.path.join(opdir,cellType,ses,animalNum,'ca2/',f.split('.')[0])
+                    if not os.path.isdir(oppath):
+                        os.makedirs(oppath)
+                    print('Calculating for ',ippath)
+                    runBiswebCa2(ipDict)
