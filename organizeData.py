@@ -481,7 +481,13 @@ def getSMRNum(fpath):
 
 def getNframesTif(tifPath):
     img = Image.open(tifPath)
-    return img.n_frames
+    
+    try:
+        nFrames = img.n_frames
+    except SyntaxError:
+        nFrames = 'unknown'
+ 
+    return nFrames
 
 
 
@@ -674,27 +680,29 @@ if __name__ == '__main__':
         else:
             print('either too many spikeMats or 0')
     
-        if len(connDct.keys()) > 0 and 'animal73' in sesh:
+        if len(connDct.keys()) > 0 and any(x2 in sesh for x2 in ['animal73','animal56','animal57']):
             for k in connDct.keys():
                 if len(connDct[k]) == 3:
                     print(k,connDct[k])
                     opTableOptical,opTableStim = matToTable(k)
 
-
                     lengths = [getNframesTif(cD) for cD in sorted(connDct[k])]
+                    if any(le == 'unknown' for le in lengths):
+                        print('images attached to',k,'cannot be read')
+                    else:
+                        if type(opTableOptical) == pd.core.frame.DataFrame:
+                            for ind,imgPath in enumerate(connDct[k]):
+                                if ind  == 0:
+                                    subOpticalTable = opTableOptical.loc[:lengths[0]-1]
+                                elif ind == 1:
+                                    subOpticalTable = opTableOptical.loc[lengths[0]:lengths[0]+lengths[1]-1]
+                                elif ind == 2:
+                                    subOpticalTable = opTableOptical.loc[lengths[0]+lengths[1]:]
+                                else:
+                                    raise Exception('too many tifs assigned to this smr file',k)
 
-                    if type(opTableOptical) == pd.core.frame.DataFrame:
-                        for ind,imgPath in enumerate(connDct[k]):
-                            if ind  == 0:
-                                subOpticalTable = opTableOptical.loc[:lengths[0]-1]
-                            elif ind == 1:
-                                subOpticalTable = opTableOptical.loc[lengths[0]:lengths[0]+lengths[1]-1]
-                            elif ind == 2:
-                                subOpticalTable = opTableOptical.loc[lengths[0]+lengths[1]:]
-                            else:
-                                raise Exception('too many tifs assigned to this smr file',k)
-
-                            subOpticalTable.reset_index(inplace=True)
-                            subOpticalTable.to_csv(connDct[k][ind].replace('.tif','OpticalOrder.csv'))
+                                subOpticalTable.reset_index(inplace=True,drop=True)
+                                subOpticalTable.columns = ['opticalOrder']
+                                subOpticalTable.to_csv(connDct[k][ind].replace('.tif','OpticalOrder.csv'))
 
                             
