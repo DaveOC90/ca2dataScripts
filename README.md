@@ -1,7 +1,20 @@
-# A guide to taking two wavelength widefield optical imaging data through some quality control and preprocessing steps
+# Calcium Scripts
+## A guide to taking two wavelength widefield optical imaging data through some quality control and preprocessing steps
+
+### Installation
+
+If you want to use the python scripts you need to install python and have the packages detailed in install/environmentGeneral.txt installed as well. The easiest way to do this, is to install miniconda, and then use te command conda install enviromentGeneral.txt
+
+If you want to run the preprocessing singularity image you need to install [singularity]()
+
+The you can download this [file]() or build the image using the specification file in install/thing.txt and run the following command:
+```
+
+```
 
 
-    
+### Running the code
+ 
 1) First the data should be in a BIDs like format (but not quite), for now the scripts enclosed only support the following directory structure:
 
 ```
@@ -24,12 +37,14 @@ SLC/ses-2/animal06/ca2/SLC_animal06_ses-2_2019-01-17-16-58-16_623.mat
 
 ```
 
-Essentially the code expects data in the following pseudo format:
-
-Tif Files: {datasetName}/ses-{sessionLabel}/{subID}/ca2/{datasetName}_{subID}_ses-{sessionLabel}_{date}_{runNumber}_{taskLabel}_part-{partNumber}.tif
-
-Electrical recording files: {datasetName}/ses-{sessionLabel}/{subID}/ca2/{datasetName}_{subID}_ses-{sessionLabel}_{date}.mat
-
+Essentially the code expects data in the following pseudo format, for Tif Files: 
+```
+{datasetName}/ses-{sessionLabel}/{subID}/ca2/{datasetName}_{subID}_ses-{sessionLabel}_{date}_{runNumber}_{taskLabel}_part-{partNumber}.tif
+```
+and for electrical recording files: 
+```
+{datasetName}/ses-{sessionLabel}/{subID}/ca2/{datasetName}_{subID}_ses-{sessionLabel}_{date}.mat
+```
 
 2) Once the code is in this format, you can now start buidling a directoy containing nifti files and csvs, corresponding to the wavelength specific data and trigger timing respectively.
 
@@ -65,7 +80,7 @@ As well as this, there will be quality control figures present in the qcFigs dir
 If the data cannot be be split automatically, there will not be any correspodning files in the output directory. However, there are semi-automatic features that can split the data
 with your supervision. Upon first pass of the data the code will create a spreadsheet named as you have set it, in this case "triggerFix.csv". The spreadsheet will be populated with the names of the files in your input directory automatically, and will look something like this:
 
-|    | Img                                             |   CrossedTrigs |   autoFix |   simpFix |   sdFlag |   sdVal |   writeImgs |   manualOverwrite |   splitMethod |   dbscanEps |
+|    | &nbsp-sImg&nbsp-s                                             |   CrossedTrigs |   autoFix |   simpFix |   sdFlag |   sdVal |   writeImgs |   manualOverwrite |   splitMethod |   dbscanEps |
 |---:|:------------------------------------------------|---------------:|----------:|----------:|---------:|--------:|------------:|------------------:|--------------:|------------:|
 |  0 | SLC_animal06_ses-2_2019-01-17_EPI1_REST_part-00 |                |           |           |          |         |             |                   |               |             |
 |  1 | SLC_animal06_ses-2_2019-01-17_EPI1_REST_part-01 |                |           |           |          |         |             |                   |               |             |
