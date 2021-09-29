@@ -148,37 +148,50 @@ singularity exec ubuntuBIS.simg python3 calciumPreprocess2.py --signal rawsignl.
 
 The arguments are detailed here:
 
-
+| Argument    | Required                                      | Type    | Description                                                                                                |
+|:------------|:----------------------------------------------|:--------|:-----------------------------------------------------------------------------------------------------------|
+| signal      | True                                          | String  | Cyan nifti file                                                                                            |
+| noise       | True                                          | String  | UV nifti file                                                                                              |
+| signalout   | True                                          | String  | Output filepath for preprocessed cyan                                                                      |
+| noiseout    | True                                          | String  | Output filepath for preprocessed uv                                                                        |
+| debug       | False                                         | Boolean | If True, will output all intermediate files                                                                |
+| workdir     | True                                          | String  | Path to put intermediate files                                                                             |
+| runoption   | True                                          | String  | Can be one of “spatial”, “temporal” or “both”                                                              |
+| createmask  | True                                          | Boolean | If True will try automated creation of mask                                                                |
+| createmcref | True                                          | Boolean | If True will take middle frame of raw cyan as motion correction reference                                  |
+| mask        | True if createmask is false; otherwise false  | String  | If createmask is False, give path to other mask. Not needed if runoption is only spatial                   |
+| mcrefsignal | True if createmcref is false; otherwise false | String  | If createmcref is False, give path to nifti file with frame to use as motion correction reference for cyan |
+| mcrefnoise  | True if createmcref is false; otherwise false | String  | If createmcref is False, give path to nifti file with frame to use as motion correction reference for uv   |
 
 And here is a description of the outputs:
 
-|    | File                                              | Group                     | Description                                           |
-|---:|:--------------------------------------------------|:--------------------------|:------------------------------------------------------|
-|  0 | rawsignl.nii.gz                                   | Raw Data                  | Raw cyan data                                         |
-|  1 | rawnoise.nii.gz                                   | Raw Data                  | Raw uv data                                           |
-|  2 | opticalOrder.csv                                  | Raw Data                  | Trigger timing                                        |
-|  3 | rawsignl_moco_refimg.nii.gz                       | Raw Data                  | Middle frame from raw cyan                            |
-|  4 | rawsignl_smooth16.nii.gz                          | Spatial Operation Output  | Cyan data smoothed with median kernel of size 16      |
-|  5 | rawnoise_smooth16.nii.gz                          | Spatial Operation Output  | Uv data smoothed with median kernel of size 16        |
-|  6 | rawsignl_smooth4.nii.gz                           | Spatial Operation Output  | Cyan data smoothed with median kernel of size 4       |
-|  7 | rawnoise_smooth4.nii.gz                           | Spatial Operation Output  | Uv data smoothed with median kernel of size 4         |
-|  8 | rawsignl_smooth16_moco.nii.gz                     | Spatial Operation Output  | Motion corrected smooth16 data                        |
-|  9 | rawsignl_smooth16_moco_refimg.nii.gz              | Spatial Operation Output  | Middle frame from motion corrected smooth16 data      |
-| 10 | rawsignl_smooth16_moco_xfm.npy                    | Spatial Operation Output  | Motion correction parameters                          |
-| 11 | rawnoise_smooth16_moco.nii.gz                     | Spatial Operation Output  | Motion corrected smooth16 data                        |
-| 12 | rawnoise_smooth16_moco_refimg.nii.gz              | Spatial Operation Output  | Middle frame from motion corrected smooth16 data      |
-| 13 | rawnoise_smooth16_moco_xfm.npy                    | Spatial Operation Output  | Motion correction parameters                          |
-| 14 | rawsignl_smooth4_mococombo.nii.gz                 | Spatial Operation Output  | Motion correction parameters applied to smooth4 data  |
-| 15 | rawnoise_smooth4_mococombo.nii.gz                 | Spatial Operation Output  | Motion correction parameters applied to smooth4 data  |
-| 16 | signl_out.nii.gz                                  | Spatial Operation Output  | Output of spatial operations                          |
-| 17 | noise_out.nii.gz                                  | Spatial Operation Output  | Output of spatial operations                          |
-| 18 | rawsignl_smooth4_mococombo_threeparts.nii.gz      | Spatial Operation Output  | The stitched together data from three parts of an EPI |
-| 19 | rawnoise_smooth4_mococombo_threeparts.nii.gz      | Spatial Operation Output  | The stitched together data from three parts of an EPI |
-| 20 | rawsignl_smooth4_mococombo_photob.nii.gz          | Temporal Operation Output | Photobleach corrected cyan                            |
-| 21 | rawnoise_smooth4_mococombo_photob.nii.gz          | Temporal Operation Output | Photobleach corrected uv                              |
-| 22 | rawsignl_smooth4_mococombo_photob_wvlthreg.nii.gz | Temporal Operation Output | Cyan with uv regressed out                            |
-| 23 | signl_out.nii.gz                                  | Temporal Operation Output | Output of temporal operations                         |
-| 24 | noise_out.nii.gz                                  | Temporal Operation Output | Output of temporal operations                         |
+| File                                              | Group                     | Description                                           |
+|:--------------------------------------------------|:--------------------------|:------------------------------------------------------|
+| rawsignl.nii.gz                                   | Raw Data                  | Raw cyan data                                         |
+| rawnoise.nii.gz                                   | Raw Data                  | Raw uv data                                           |
+| opticalOrder.csv                                  | Raw Data                  | Trigger timing                                        |
+| rawsignl_moco_refimg.nii.gz                       | Raw Data                  | Middle frame from raw cyan                            |
+| rawsignl_smooth16.nii.gz                          | Spatial Operation Output  | Cyan data smoothed with median kernel of size 16      |
+| rawnoise_smooth16.nii.gz                          | Spatial Operation Output  | Uv data smoothed with median kernel of size 16        |
+| rawsignl_smooth4.nii.gz                           | Spatial Operation Output  | Cyan data smoothed with median kernel of size 4       |
+| rawnoise_smooth4.nii.gz                           | Spatial Operation Output  | Uv data smoothed with median kernel of size 4         |
+| rawsignl_smooth16_moco.nii.gz                     | Spatial Operation Output  | Motion corrected smooth16 data                        |
+| rawsignl_smooth16_moco_refimg.nii.gz              | Spatial Operation Output  | Middle frame from motion corrected smooth16 data      |
+| rawsignl_smooth16_moco_xfm.npy                    | Spatial Operation Output  | Motion correction parameters                          |
+| rawnoise_smooth16_moco.nii.gz                     | Spatial Operation Output  | Motion corrected smooth16 data                        |
+| rawnoise_smooth16_moco_refimg.nii.gz              | Spatial Operation Output  | Middle frame from motion corrected smooth16 data      |
+| rawnoise_smooth16_moco_xfm.npy                    | Spatial Operation Output  | Motion correction parameters                          |
+| rawsignl_smooth4_mococombo.nii.gz                 | Spatial Operation Output  | Motion correction parameters applied to smooth4 data  |
+| rawnoise_smooth4_mococombo.nii.gz                 | Spatial Operation Output  | Motion correction parameters applied to smooth4 data  |
+| signl_out.nii.gz                                  | Spatial Operation Output  | Output of spatial operations                          |
+| noise_out.nii.gz                                  | Spatial Operation Output  | Output of spatial operations                          |
+| rawsignl_smooth4_mococombo_threeparts.nii.gz      | Spatial Operation Output  | The stitched together data from three parts of an EPI |
+| rawnoise_smooth4_mococombo_threeparts.nii.gz      | Spatial Operation Output  | The stitched together data from three parts of an EPI |
+| rawsignl_smooth4_mococombo_photob.nii.gz          | Temporal Operation Output | Photobleach corrected cyan                            |
+| rawnoise_smooth4_mococombo_photob.nii.gz          | Temporal Operation Output | Photobleach corrected uv                              |
+| rawsignl_smooth4_mococombo_photob_wvlthreg.nii.gz | Temporal Operation Output | Cyan with uv regressed out                            |
+| signl_out.nii.gz                                  | Temporal Operation Output | Output of temporal operations                         |
+| noise_out.nii.gz                                  | Temporal Operation Output | Output of temporal operations                         |
 
 There is a script cal runPreproc.py (in progress) to provide easy preprocessing of the bids like directory output from genTrigs.py. It requires the following:
 
