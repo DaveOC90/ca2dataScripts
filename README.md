@@ -9,7 +9,7 @@ If you want to run the preprocessing singularity image you need to install [sing
 
 The you can download this [file]() or build the image using the specification file in install/thing.txt and run the following command:
 ```
-
+singularity build ubuntuBIS.sif ../biswebSing.recipe
 ```
 
 
@@ -75,22 +75,26 @@ preprocDir/SLC/ses-2/animal06/ca2/SLC_animal06_ses-2_2019-01-17_EPI1_REST/part-0
 preprocDir/SLC/ses-2/animal06/ca2/SLC_animal06_ses-2_2019-01-17_EPI1_REST/part-02/rawnoise.nii.gz
 ```
 
-As well as this, there will be quality control figures present in the qcFigs directory. You should look at each of these to ensure that the automatic split worked appropriately. 
+As well as this, there will be quality control figures present in the qcFigs directory. You should look at each of these to ensure that the automatic split worked appropriately. Below are two examples, one correct, one incorrect, of "successfully split" data. For the incorrect example, you should use the semi automated functions detailed later.
+
+Correct           |  Incorrect
+:-------------------------:|:-------------------------:
+![](figs/correct.png)  |  ![](figs/incorrect.png)
 
 If the data cannot be be split automatically, there will not be any correspodning files in the output directory. However, there are semi-automatic features that can split the data
 with your supervision. Upon first pass of the data the code will create a spreadsheet named as you have set it, in this case "triggerFix.csv". The spreadsheet will be populated with the names of the files in your input directory automatically, and will look something like this:
 
-|    | Img  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;    | |  CrossedTrigs |   autoFix |   simpFix |   sdFlag |   sdVal |   writeImgs |   manualOverwrite |   splitMethod |   dbscanEps |
-|---:|:------------------------------------------------||---------------:|----------:|----------:|---------:|--------:|------------:|------------------:|--------------:|------------:|
-|  0 | SLC_animal06_ses-2_2019-01-17_EPI1_REST_part-00 ||               |           |           |          |         |             |                   |               |             |
-|  1 | SLC_animal06_ses-2_2019-01-17_EPI1_REST_part-01 ||              |           |           |          |         |             |                   |               |             |
-|  2 | SLC_animal06_ses-2_2019-01-17_EPI1_REST_part-02 ||                |           |           |          |         |             |                   |               |             |
-|  3 | SLC_animal06_ses-2_2019-01-17_EPI2_LED_part-00  ||               |           |           |          |         |             |                   |               |             |
-|  4 | SLC_animal06_ses-2_2019-01-17_EPI2_LED_part-01  ||                |           |           |          |         |             |                   |               |             |
-|  5 | SLC_animal06_ses-2_2019-01-17_EPI2_LED_part-02  ||                |           |           |          |         |             |                   |               |             |
-|  6 | SLC_animal06_ses-2_2019-01-17_EPI3_REST_part-00 ||                |           |           |          |         |             |                   |               |             |
-|  7 | SLC_animal06_ses-2_2019-01-17_EPI3_REST_part-01 ||                |           |           |          |         |             |                   |               |             |
-|  8 | SLC_animal06_ses-2_2019-01-17_EPI3_REST_part-02 ||                |           |           |          |         |             |                   |               |             |
+|    | Img  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;    |   CrossedTrigs |   autoFix |   simpFix |   sdFlag |   sdVal |   writeImgs |   manualOverwrite |   splitMethod |   dbscanEps |
+|---:|:------------------------------------------------|---------------:|----------:|----------:|---------:|--------:|------------:|------------------:|--------------:|------------:|
+|  0 | SLC_animal06_ses-2_2019-01-17_EPI1_REST_part-00 |                |           |           |          |         |             |                   |               |             |
+|  1 | SLC_animal06_ses-2_2019-01-17_EPI1_REST_part-01 |                |           |           |          |         |             |                   |               |             |
+|  2 | SLC_animal06_ses-2_2019-01-17_EPI1_REST_part-02 |                |           |           |          |         |             |                   |               |             |
+|  3 | SLC_animal06_ses-2_2019-01-17_EPI2_LED_part-00  |                |           |           |          |         |             |                   |               |             |
+|  4 | SLC_animal06_ses-2_2019-01-17_EPI2_LED_part-01  |                |           |           |          |         |             |                   |               |             |
+|  5 | SLC_animal06_ses-2_2019-01-17_EPI2_LED_part-02  |                |           |           |          |         |             |                   |               |             |
+|  6 | SLC_animal06_ses-2_2019-01-17_EPI3_REST_part-00 |                |           |           |          |         |             |                   |               |             |
+|  7 | SLC_animal06_ses-2_2019-01-17_EPI3_REST_part-01 |                |           |           |          |         |             |                   |               |             |
+|  8 | SLC_animal06_ses-2_2019-01-17_EPI3_REST_part-02 |                |           |           |          |         |             |                   |               |             |
 
 
 For any data that could not be split automatically you should put a "1" in the "CrossedTrigs" column next to the filename. You can then rerun the code and it will generate a first pass at two different methods for generating wavelegnth labels for the data based on the mean timeseries of the tif file. The "simpFix" method assumes that the wavelengths were acquired in a simple interleaved fashion, without any error: cyan,uv,cyan,uv.... etc. The second method (autoFix) is useful in the case that there is a skipped frame at some point (in which case the order of the wavelengths will swap at some point). It is based on the mean intensity of each frame, and assumes that there are two distributions of data (cyan and uv) with significantly different means. In this case it will assign all frames in the distribution with the higher mean intensity to cyan, and the lower inensity to uv. The code will generate plots of both methods applied to the data and deposit them in the directory called qcFigs/triggerFIx (autogenerated). You can look at these and if either the auto fix or the simp fix gives satisfactory results you can then put a "1" in the "writeImgs" column in the spreadsheet, rerun the code and the nifti files will be written to the output directory.
@@ -104,7 +108,7 @@ The preprocessing code is currenty best used as a singularity container. It is a
 It can be used as follows:
 
 ```
-
+singularity exec ubuntuBIS.simg python3 calciumPreprocess2.py --signal data/SLC/ses-1/animal01/ca2/SLC_animal01_ses-1_2019-01-09_EPI1_REST/part-02/rawsignl.nii.gz --noise data/SLC/ses-1/animal01/ca2/SLC_animal01_ses-1_2019-01-09_EPI1_REST/part-02/rawnoise.nii.gz --signalout data/SLC/ses-1/animal01/ca2/SLC_animal01_ses-1_2019-01-09_EPI1_REST/part-02/signl_out.nii.gz --noiseout data/SLC/ses-1/animal01/ca2/SLC_animal01_ses-1_2019-01-09_EPI1_REST/part-02/noise_out.nii.gz --debug True --workdir data/SLC/ses-1/animal01/ca2/SLC_animal01_ses-1_2019-01-09_EPI1_REST/part-02/ --runoption spatial --createmask False --createmcref True --mask data/SLC_animal01_ses-01_RotOptical_maskRPI.nii.gz
 ```
 
 The arguments are detailed here:
@@ -114,7 +118,7 @@ The arguments are detailed here:
 And here is a description of the outputs:
 
 
-There is a script (in progress) to provide easy preprocessing of the bids like directory output from genTrigs.py. It requires the following:
+There is a script cal runPreproc.py (in progress) to provide easy preprocessing of the bids like directory output from genTrigs.py. It requires the following:
 
 
 
@@ -122,4 +126,6 @@ And can be used like so:
 ```
 
 ```
+
+The way the data is setup at the moment, it is required that we do spatial prepreprocessing first, then stitch together three image parts, and do temporal processing. This script will perform these operations sequentially. 
 
