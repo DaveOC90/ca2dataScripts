@@ -24,7 +24,7 @@ def runBiswebCa2(ipDict):
         raise Exception('At least one of the keys in this dictionary is not an acceptable term for the preprocessing pipeline:',ipDict)
 
     
-    cmd = 'singularity exec ' + ipDict['calPreprocPath'] + ' calciumPreprocess2.py '+' '.join(['--%s %s' % kv for kv in ipDict.items() if not any(kv[0] == aT for aT in ['pythonPath','calPreprocPath'])])
+    cmd = 'singularity exec ' + ipDict['calPreprocPath'] + ' calciumPreprocess2.py '+' '.join(['--%s %s' % kv for kv in ipDict.items() if not any(kv[0] == aT for aT in ['calPreprocPath'])])
     print(cmd)
     os.system(cmd)
 
@@ -52,10 +52,8 @@ if __name__ == '__main__':
 
     # Input arguments    
     parser=argparse.ArgumentParser(description='Run script to iterate over organized calcium data and run preprocessing')
-    #parser.add_argument('organizedDataPath',type = str, help="Path to the bids like organized data")
     parser.add_argument('outputDir',type=str,help="Path to output directory")
     parser.add_argument('humanMadeMasks',type=str,help='Path to where we keep the manually made masks')
-    parser.add_argument('pythonPath',type=str,help="Path to python version to run")
     parser.add_argument('singPath',type=str,help='Path to bisweb calcium preproc singularity file')
     parser.add_argument('--tag',type=str,help='substring to run only subset of data',default='ses') 
 
@@ -66,7 +64,6 @@ if __name__ == '__main__':
     opdir=args.outputDir
 
     # Paths to python install and bisweb install to use
-    pythonPath=args.pythonPath
     biswebCaPath=args.singPath
     humanMadeMasks = args.humanMadeMasks
     ftags = args.tag.split(',')
@@ -94,7 +91,6 @@ if __name__ == '__main__':
                 partNum = int(partNum.split('-')[-1])+1
     
                 # Insert more general ipDict key value pairs
-                ipDict['pythonPath'] = pythonPath
                 ipDict['calPreprocPath'] = biswebCaPath
                 ipDict['signal'] = ippath
                 ipDict['noise'] = ippath.replace('signl','noise')
