@@ -9,7 +9,7 @@ import glob
 import argparse
 
 
-def runBiswebCa2(ipDict):
+def runBiswebCa2(ipDict,hpc=0):
 
     '''
     Run the bisweb script via the command line here
@@ -26,10 +26,13 @@ def runBiswebCa2(ipDict):
     
     cmd = 'singularity exec ' + ipDict['calPreprocPath'] + ' calciumPreprocess2.py '+' '.join(['--%s %s' % kv for kv in ipDict.items() if not any(kv[0] == aT for aT in ['calPreprocPath'])])
     print(cmd)
-    os.system(cmd)
 
-    #with open('joblistglob.txt','a') as f:
-    #    f.write(cmd+'\n')
+    if hpc == 0:
+        os.system(cmd)
+
+    else:
+        with open('joblistglob.txt','a') as f:
+            f.write(cmd+'\n')
 
 
 
@@ -56,6 +59,7 @@ if __name__ == '__main__':
     parser.add_argument('humanMadeMasks',type=str,help='Path to where we keep the manually made masks')
     parser.add_argument('singPath',type=str,help='Path to bisweb calcium preproc singularity file')
     parser.add_argument('--tag',type=str,help='substring to run only subset of data',default='ses') 
+    parser.add_argument('--hpc',type=str,help='If true will print commands to text file called joblist.txt',default=0) 
 
     args=parser.parse_args()
 
@@ -67,7 +71,8 @@ if __name__ == '__main__':
     biswebCaPath=args.singPath
     humanMadeMasks = args.humanMadeMasks
     ftags = args.tag.split(',')
-    
+    hpc = args.hpc
+
 
     # Walk through input directory
     for root,dirs,fs in sorted(os.walk(opdir)):
@@ -168,7 +173,7 @@ if __name__ == '__main__':
                 if all(checkIps2) and not os.path.isfile(lastFile):
 
                     print('Calculating for ',ippath)
-                    runBiswebCa2(ipDict2)
+                    runBiswebCa2(ipDict2,hpc=hpc)
 
                 #spatialSignlFilePath = os.path.join(opdir,cellType,sesh,animalNum,'ca2/',f.split('.')[0].split('_part')[0],'part-*','signl_out.nii.gz')
                 spatialSignlFilePath = os.path.join('/'.join(root.split('/')[:-1]),'part-*', 'signl_out.nii.gz')
@@ -226,5 +231,5 @@ if __name__ == '__main__':
                         if not os.path.isdir(oppath):
                             os.makedirs(oppath)
                         print('Running temporal preprocessing for ', f.split('.')[0].split('_part')[0])
-                        runBiswebCa2(ipDict)
+                        runBiswebCa2(ipDict,hpc=hpc)
 

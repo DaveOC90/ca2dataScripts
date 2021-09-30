@@ -234,9 +234,15 @@ There is a script cal runPreproc.py to provide easy preprocessing of the bids li
 
 
 And can be used like so:
+
 ```
 python3 runPreproc.py preprocDir/ maskDir/ ubuntuBIS.sif
 ```
 
-The way the data is setup at the moment, it is required that we do spatial prepreprocessing first, then stitch together three image parts, and do temporal processing. This script will perform these operations sequentially. 
+The way the data is setup at the moment, it is required that we do spatial prepreprocessing first, then stitch together three image parts, and do temporal processing. This script will perform these operations sequentially. If you want to run on a HPC/Cluster you can pass a flag to the command and instead of running the pipeline, it will print all the commands to a file called "joblist.txt" in your current directory. This can then be passed to a scheduler.
+
+```
+python3 runPreproc.py preprocDir/ maskDir/ ubuntuBIS.sif --hpc 1
+```
+
 
