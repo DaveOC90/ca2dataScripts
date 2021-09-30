@@ -4,7 +4,11 @@
 ## Installation
 
 ### Python Environment
-If you want to use the python scripts you need to install python and have the packages detailed in install/environmentGeneral.txt installed as well. The easiest way to do this, is to install [miniconda](https://docs.conda.io/en/latest/miniconda.html), and then use te command conda install enviromentGeneral.txt
+If you want to use the python scripts you need to install python and have the packages detailed in installationFile/environment.txt installed as well. The easiest way to do this, is to install [miniconda](https://docs.conda.io/en/latest/miniconda.html), and then use the command:
+
+```
+conda install --file environment.txt
+```
 
 ### MATLAB
 For the script smrToMat.py, a MATLAB installation is needed.
@@ -210,11 +214,11 @@ And here is a description of the outputs:
 | signl_out.nii.gz                                  | Temporal Operation Output | Output of temporal operations                         |
 | noise_out.nii.gz                                  | Temporal Operation Output | Output of temporal operations                         |
 
-There is a script cal runPreproc.py (in progress) to provide easy preprocessing of the bids like directory output from genTrigs.py. It requires the following:
+There is a script cal runPreproc.py to provide easy preprocessing of the bids like directory output from genTrigs.py. It requires the following:
 
-- An input directory setup like above.
+- An preprocessing directory setup like above.
 - A path to premade masks. The files should be named like: {datasetName}_{subID}_ses-{sessionLabel}_RotOptical_maskRPI.nii.gz
-
+- The singularity image file
 
 
 And can be used like so:
