@@ -157,6 +157,7 @@ Addional notes:
 
 - The splitMethod and dbscanEps columns are part of a function that is under development, please ignore. 
 
+- If you run the code multiple times in order to tweak how the data is split you will need to delete the qc figures, as they do not get overwritten.
 ### Preprocessing
 
 The preprocessing code is currenty best used as a singularity container. It is available for download [here](https://drive.google.com/file/d/1H7PIvLk06wPqgDPYvIvD4HHfqPf2lkAm/view?usp=sharing) (1.7GB, md5sum = dcb254e8aa6c86bcd1f57f876b54a60e)
