@@ -201,7 +201,6 @@ if __name__ == '__main__':
 
 
                     # Insert more general ipDict key value pairs
-                    ipDict['pythonPath'] = pythonPath
                     ipDict['calPreprocPath'] = biswebCaPath
                     ipDict['signal'] = threePartSignlPath
                     ipDict['noise'] = threePartNoisePath
