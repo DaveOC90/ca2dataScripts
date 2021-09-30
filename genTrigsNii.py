@@ -626,6 +626,7 @@ def autoTrigs(connDct, outputTrigs = False, trigOpDir = None, figDir = '', histS
                     xvalsSub = xvals[colorAuto == cA]
 
                     plt.scatter(xvalsSub,newTS, marker = '.',c=col)
+                    plt.xlabel('autoFix')
 
 
 
@@ -639,6 +640,7 @@ def autoTrigs(connDct, outputTrigs = False, trigOpDir = None, figDir = '', histS
                     newTS = meanTS[colSimp == cS]
                     xvalsSub = xvals[colSimp == cS]
                     plt.scatter(xvalsSub,newTS, marker = '.',c=col)
+                    plt.xlabel('simpFix')
 
                 plt.savefig(pltOpName)
                 plt.close()
@@ -976,6 +978,8 @@ if __name__ == '__main__':
     if not os.path.isdir(trigFixQcDir):
         os.makedirs(trigFixQcDir)
 
+    if not os.path.isdir(os.path.join (trigQcDir,'triggerReplace')):
+        os.makedirs(os.path.join (trigQcDir,'triggerReplace'))
 
     # Which directories to look at....
     #sesGlobStr = os.path.join(opdir,'*/ses-*/animal*/ca2/')
@@ -997,6 +1001,7 @@ if __name__ == '__main__':
 
         trigReplaceDf.to_csv(trigReplaceDfPath,index=False)
         
+
 
 
 
@@ -1266,6 +1271,16 @@ if __name__ == '__main__':
 
                             elif firstImageName in trigReplaceDf.Img.values:
                                 processFlag = trigReplaceDf[trigReplaceDf.Img == fname.replace('.tif','')].CrossedTrigs.values
+                                if len(processFlag) > 0:
+                                    processFlag = processFlag[0]
+                                else:
+                                    processFlag = 0
+
+                                if processFlag != 1:
+                                    row =  trigReplaceDf[trigReplaceDf.Img == fname.replace('.tif','')].index[0]
+                                    trigReplaceDf.loc[row,'CrossedTrigs'] = 1
+
+
                         print('Modifying trigger csv to produce suggested fixes in trigFix directory')                            
 
 
