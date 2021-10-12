@@ -4,11 +4,24 @@
 ## Installation
 
 ### Python Environment
-If you want to use the python scripts you need to install python and have the packages detailed in installationFile/environment.txt installed as well. The easiest way to do this, is to install [miniconda](https://docs.conda.io/en/latest/miniconda.html), and then use the command:
+If you want to use the python scripts you need to install python and have the packages detailed in installationFile/environment.yml installed as well. The easiest way to do this, is to install [miniconda](https://docs.conda.io/en/latest/miniconda.html), and then use the command:
 
 ```
-conda install --file environment.txt
+conda env create -f environment.yml
 ```
+
+You can then activate the install like so:
+
+```
+conda activate ca2Python
+```
+
+In this environment you can use the python scripts in the repository. To exit the environment you can use thios command:
+
+```
+conda deactivate
+```
+
 
 ### MATLAB
 For the script smrToMat.py, a MATLAB installation is needed.
