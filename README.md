@@ -10,13 +10,13 @@ If you want to use the python scripts you need to install python and have the pa
 conda env create -f environment.yml
 ```
 
-You can then activate the install like so:
+You can then activate the installation like so:
 
 ```
 conda activate ca2Python
 ```
 
-In this environment you can use the python scripts in the repository. To exit the environment you can use thios command:
+In this environment you can use the python scripts in the repository. To exit the environment you can use this command:
 
 ```
 conda deactivate
