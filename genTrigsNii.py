@@ -1355,7 +1355,7 @@ if __name__ == '__main__':
                     if autoFlag == 1 and ((type(splitMethod) != str) or (splitMethod == 'filter')):
                         if not os.path.isdir(opDirCsv):
                             os.makedirs(opDirCsv)
-                        writeFiles[ind] = 1
+
 
                         sdFlag = trigReplaceDf[trigReplaceDf.Img == fname.replace('.tif','')].sdFlag.values[0]
                         sdFlag2 = trigReplaceDf[trigReplaceDf.Img == fname.replace('.tif','')].sdFlag.values[0]
@@ -1371,13 +1371,12 @@ if __name__ == '__main__':
                         else:
                             sdVal2 = 3
                             
-                        autoTrigs(imgPath,outputTrigs = 'hist', figDir = trigFixQcDir,histSd = sdVal,histSd2 = sdVal2,writeFiles = writeFiles,trigOpDir = opDirCsv)
+                        autoTrigs(imgPath,outputTrigs = 'hist', figDir = trigFixQcDir,histSd = sdVal,histSd2 = sdVal2,trigOpDir = opDirCsv)
 
 
                     elif simpFlag == 1:
                         if not os.path.isdir(opDirCsv):
                             os.makedirs(opDirCsv)
-                        writeFiles[ind] = 1
                         autoTrigs(imgPath,outputTrigs = 'simp', figDir = trigFixQcDir,writeFiles = writeFiles,trigOpDir = opDirCsv)
 
 
@@ -1389,14 +1388,13 @@ if __name__ == '__main__':
                     elif splitMethod == 'dbscan':
                         if not os.path.isdir(opDirCsv):
                             os.makedirs(opDirCsv)
-                        writeFiles[ind] = 1
 
                         dbscanEps = trigReplaceDf[trigReplaceDf.Img == fname.replace('.tif','')].dbscanEps.values[0]
 
                         if not np.isnan(dbscanEps):
-                            autoTrigs(imgPath,outputTrigs = 'hist', figDir = trigFixQcDir,writeFiles = writeFiles,trigOpDir = opDirCsv,splitMethod = 'dbscan',dbscanEps = dbscanEps)
+                            autoTrigs(imgPath,outputTrigs = 'hist', figDir = trigFixQcDir,trigOpDir = opDirCsv,splitMethod = 'dbscan',dbscanEps = dbscanEps)
                         else:
-                            autoTrigs(imgPath,outputTrigs = 'hist', figDir = trigFixQcDir,writeFiles = writeFiles,trigOpDir = opDirCsv,splitMethod = 'dbscan')
+                            autoTrigs(imgPath,outputTrigs = 'hist', figDir = trigFixQcDir,trigOpDir = opDirCsv,splitMethod = 'dbscan')
                         
 
                     else:
