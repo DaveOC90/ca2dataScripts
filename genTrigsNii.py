@@ -34,7 +34,7 @@ elif os.name == 'posix' and "DISPLAY" not in os.environ:
     from matplotlib import pyplot as plt
     import seaborn as sns
 
-def matToTable(matPath):
+def matToTable(matPath, trigSuffix = '1', cyanSuffix = '3', uvSuffix = '4', ledSuffix = '12', pawSuffix = '13'):
     
     dct=io.loadmat(matPath)
    
@@ -42,15 +42,15 @@ def matToTable(matPath):
     err=''
 
     try: 
-        trigFlag = dct['head1']['max'].squeeze() > 30000
-        led1Flag = dct['head3']['max'].squeeze() > 30000
-        led2Flag = dct['head4']['max'].squeeze() > 30000
+        trigFlag = dct['head'+trigSuffix]['max'].squeeze() > 30000
+        led1Flag = dct['head'+cyanSuffix]['max'].squeeze() > 30000
+        led2Flag = dct['head'+uvSuffix]['max'].squeeze() > 30000
     except KeyError as e:
         logging.exception(e)
         return False, False, 0, e
 
     if trigFlag and led1Flag and led2Flag:
-        chan1bin=dct['chan1'].squeeze() > 30000;
+        chan1bin=dct['chan'+trigSuffix].squeeze() > 30000;
         findx=np.where(chan1bin)
         findx=findx[0]
         firstTrigStart=findx[0]
@@ -61,11 +61,11 @@ def matToTable(matPath):
             #chan1xbin=chan1bin(findx(1):findx(end)+24749);
             #y=downsample(chan1xbin,250);
 
-            chan3bin=np.squeeze(dct['chan3'] > 30000)
+            chan3bin=np.squeeze(dct['chan'+cyanSuffix] > 30000)
             chan3bin=chan3bin[firstTrigStart:lastTrigStart+24999]
             chan3bin=chan3bin*2
 
-            chan4bin=np.squeeze(dct['chan4'] > 30000)
+            chan4bin=np.squeeze(dct['chan'+uvSuffix] > 30000)
             chan4bin=chan4bin[firstTrigStart:lastTrigStart+24999]
 
 
@@ -103,13 +103,13 @@ def matToTable(matPath):
         consecutiveTriggers = 0 
 
     try:
-        ledStimFlag = dct['head12']['max'].squeeze() > 30000
-        pawStimFlag = dct['head13']['max'].squeeze() > 30000
+        ledStimFlag = dct['head'+ledSuffix]['max'].squeeze() > 30000
+        pawStimFlag = dct['head'+pawSuffix]['max'].squeeze() > 30000
     except KeyError as e:
         logging.exception(e)
         return opTableOptical, False, consecutiveTriggers, e
 
-    chan1=dct['chan1'].squeeze() 
+    chan1=dct['chan'+trigSuffix].squeeze() 
     chan1DS=signal.resample_poly(chan1,1,25000) 
     chan1DSBin = chan1DS > 200
 
@@ -118,7 +118,7 @@ def matToTable(matPath):
 
     if ledStimFlag and (chan1DSBin.sum() > 200):
         #print('Max val LED stim channel: ', dct['head12']['max'])
-        chan12=dct['chan12'].squeeze()
+        chan12=dct['chan'+ledSuffix].squeeze()
         chan12DS=signal.resample_poly(chan12,960,1000000)
         chan12DSBin = chan12DS > 10000
         chan12DSBin=chan12DSBin.astype(int)
@@ -133,7 +133,7 @@ def matToTable(matPath):
          
 
     if pawStimFlag and (chan1DSBin.sum() == 600):
-        chan13=dct['chan13'].squeeze()
+        chan13=dct['chan'+pawSuffix].squeeze()
         chan13DS=signal.resample_poly(chan13,960,1000000)
         chan13DSBin = chan13DS > 10000
         chan13DSBin=chan13DSBin.astype(int)
@@ -152,24 +152,24 @@ def matToTable(matPath):
     return opTableOptical, opTableStim, consecutiveTriggers, err
 
 
-def matToTable2(matPath):
+def matToTable2(matPath, trigSuffix = '1', cyanSuffix = '3', uvSuffix = '4', ledSuffix = '12', pawSuffix = '13'):
     
     dct=io.loadmat(matPath)
 
     try: 
         #trigFlag = dct['head1']['max'].squeeze() > 30000
-        led1Flag = dct['head3']['max'].squeeze() > 30000
-        led2Flag = dct['head4']['max'].squeeze() > 30000
+        led1Flag = dct['head'+cyanSuffix]['max'].squeeze() > 30000
+        led2Flag = dct['head'+uvSuffix]['max'].squeeze() > 30000
     except KeyError:
         return False, False, 0,None
 
     if led1Flag and led2Flag:
         
         
-        chan3bin=np.squeeze(dct['chan3'] > 30000)
+        chan3bin=np.squeeze(dct['chan'+cyanSuffix] > 30000)
         chan3bin=chan3bin*2
 
-        chan4bin=np.squeeze(dct['chan4'] > 30000)
+        chan4bin=np.squeeze(dct['chan'+uvSuffix] > 30000)
     
         if chan4bin.shape[0] > chan3bin.shape[0]:
             chan4bin = chan4bin[:chan3bin.shape[0]]
@@ -962,6 +962,7 @@ if __name__ == '__main__':
     parser.add_argument('trigReplaceDf',type=str,help='Path to csv file which controls the semi automatic generation of trigger files')
     parser.add_argument('--matchTemplate',type=str,help='a string to feed to glob to match certain sessions/cell types for example: SLC/ses-*/animal*/ca2/ will do all SLC data',default='*/*/*/*/')
     parser.add_argument('--refImage',type=str,help='1 to create ref images, 0 otherwise',default=0)
+    parser.add_argument('--refImage100',type=str,help='1 to create images of 100 frames centered around the ref images, 0 otherwise',default=0)
 
 
     # Read in arguments and assign to variables
@@ -974,6 +975,7 @@ if __name__ == '__main__':
     trigFixQcDir=os.path.join(trigQcDir,'triggerFix')
     matchTemplate=args.matchTemplate
     refImageFlag = int(args.refImage)
+    refImg100Flag = int(args.refImage100)
 
     if not os.path.isdir(trigFixQcDir):
         os.makedirs(trigFixQcDir)
@@ -1210,7 +1212,7 @@ if __name__ == '__main__':
                             if all([os.path.isfile(oCN) for oCN in opCsvNames]):
                                 for i,cN in enumerate(connDct[k]):
 
-                                    print('Now splitting tif files')
+
                                     
                                     firstImageName = cN.split('/')[-1]
                                     # For some reason extract these labels again from the filename
@@ -1221,10 +1223,14 @@ if __name__ == '__main__':
                                     opDirImage = os.path.join(opDir,cellType,sesh,animalNum,'ca2/',firstImageName.split('.')[0].split('_part')[0],'part-'+str(partNum-1).zfill(2))
 
 
+
+
+
                                     opPathSignal = os.path.join(opDirImage,'rawsignl.nii.gz')
                                     opPathNoise = os.path.join(opDirImage,'rawnoise.nii.gz') 
 
                                     if not os.path.isfile(opPathSignal) or not os.path.isfile(opPathNoise):
+                                        print('Now splitting tif files')
                                         print('##### Reading in tif and splitting: ', cN)
                                         signalMovie, noiseMovie = splitTif(cN, opCsvNames[i], mcRef = False)
                                         if type(signalMovie) == bool:
@@ -1475,8 +1481,9 @@ if __name__ == '__main__':
                     if f == 'rawsignl.nii.gz' and all([x in root for x in ['EPI1_','part-00']]):
 
                         opname = os.path.join(root,'rawsignl_moco_refimg.nii.gz')
+                        opname100 = os.path.join(root,'rawsignl_moco_refimg100.nii.gz')
 
-                        if not os.path.isfile(opname): 
+                        if not os.path.isfile(opname) or (not os.path.isfile(opname100) and refImg100Flag == 1): 
 
                             ippath = os.path.join(root,f)
                             imgObj = nb.Nifti1Image.load(ippath)
@@ -1486,11 +1493,22 @@ if __name__ == '__main__':
 
                             mcRefArr = imgData[:,:,midFrame]
 
+
                             opImg = nb.Nifti1Image(mcRefArr, imgObj.affine, header = imgObj.header)
 
 
                             print('Saving moco ref image:', opname)
                             nb.save(opImg, opname)
+
+                            if refImg100Flag == 1:
+                                mcRefArr100 = imgData[:,:,midFrame-50:midFrame+50]
+                                opImg100 = nb.Nifti1Image(mcRefArr100, imgObj.affine, header = imgObj.header)
+
+
+                                print('Saving moco ref 100 frames image:', opname100)
+                                nb.save(opImg, opname100)
+
+
 
                         else:
                             print('File already exits:', opname)
@@ -1498,4 +1516,5 @@ if __name__ == '__main__':
 
 
 
+                       
 
