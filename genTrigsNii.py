@@ -1506,7 +1506,7 @@ if __name__ == '__main__':
 
 
                                 print('Saving moco ref 100 frames image:', opname100)
-                                nb.save(opImg, opname100)
+                                nb.save(opImg100, opname100)
 
 
 
