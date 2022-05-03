@@ -24,6 +24,8 @@ import nibabel as nb
 import matplotlib
 import logging
 
+import neo
+
 
 if (os.name == 'posix' and "DISPLAY" in os.environ) or (os.name == 'nt'):
     from matplotlib import pyplot as plt
@@ -204,6 +206,234 @@ def matToTable2(matPath, trigSuffix = '1', cyanSuffix = '3', uvSuffix = '4', led
 
     return opTableOptical,False,sumConsecTrigs,whereConsec
 
+
+
+def smrToTable(smrPath, trigName = 'Trigger', cyanName = 'LED1', uvName = 'LED2', ledStimName = 'stim_LED', pawStimName = 'stim_Paw'):
+    
+    readSmr = neo.io.CedIO(smrPath)
+    blockObj = readSmr.read(lazy=False)[0]
+    data = [np.array(asig.data).squeeze() for seg in blockObj.segments for asig in seg.analogsignals]
+    infoDf = pd.DataFrame(np.array([sc for sc in readSmr.header['signal_channels']]))
+
+
+
+    err=''
+
+    if all([chanName in infoDf.name.values for chanName in [trigName,cyanName,uvName]]):
+        
+
+
+        trigInd = int(infoDf[infoDf.name == trigName].stream_id.values[0])
+        led1Ind = int(infoDf[infoDf.name == cyanName].stream_id.values[0])
+        led2Ind = int(infoDf[infoDf.name == uvName].stream_id.values[0])
+
+        channelCheck = [data[ind].squeeze().max()> 4 for ind in [trigInd,led1Ind,led2Ind]]
+
+        if all(channelCheck):
+
+            chan1bin=data[trigInd].squeeze() > 4
+            findx=np.where(chan1bin)
+            findx=findx[0]
+            firstTrigStart=findx[0]
+            lastTrigStart=findx[-249]
+
+            if (lastTrigStart - firstTrigStart)/25000 > 550:
+
+                #chan1xbin=chan1bin(findx(1):findx(end)+24749);
+                #y=downsample(chan1xbin,250);
+
+                chan3bin=np.squeeze(data[led1Ind] > 4)
+                chan3bin=chan3bin[firstTrigStart:lastTrigStart+24999]
+                chan3bin=chan3bin*2
+
+                chan4bin=np.squeeze(data[led2Ind] > 4)
+                chan4bin=chan4bin[firstTrigStart:lastTrigStart+24999]
+
+                if chan4bin.shape[0] > chan3bin.shape[0]:
+                    chan4bin = chan4bin[:chan3bin.shape[0]]
+                elif chan4bin.shape[0] < chan3bin.shape[0]:
+                    chan3bin = chan3bin[:chan4bin.shape[0]]
+        
+
+                combineLED=chan3bin+chan4bin
+                combineLEDDiff = np.diff(combineLED)
+                combineLEDNonzeroDiff = np.where(combineLEDDiff)[0]
+
+                compressCombineLED = combineLED[combineLEDNonzeroDiff]
+
+                nonZeroTrigs = np.where(compressCombineLED)[0]
+
+                opticalOrder = compressCombineLED[nonZeroTrigs]
+                   
+
+                consecutiveTriggers=np.sum(np.diff(opticalOrder.squeeze()) == 0) 
+
+                opTableOptical=pd.DataFrame({'opticalOrder':opticalOrder})
+
+            else:
+                err = err+'#length of trig channel less than 550 sec#'
+                opTableOptical = False
+                consecutiveTriggers = 0
+        else:
+            err = err+'#trig/led1/led2 channel empty#'
+            opTableOptical = False
+            consecutiveTriggers = 0 
+
+    else:
+        err = err+'#trig/led1/led2 channel empty#'
+        opTableOptical = False
+        consecutiveTriggers = 0 
+
+
+
+    if ledStimName in infoDf.name.values:
+        
+        ledStimInd = int(infoDf[infoDf.name == ledStimName].stream_id.values[0])
+        ledStimFlag = data[ledStimInd].squeeze().max() > 4
+    else:
+        ledStimFlag = False
+
+    if pawStimName in infoDf.name.values: 
+        pawStimFlag = True
+
+        pawStimInd = int(infoDf[infoDf.name == pawStimName].stream_id.values[0])
+        pawStimFlag = data[pawStimInd].squeeze().max() > 4
+    else:
+        pawStimFlag = False
+
+    chan1=data[trigInd].squeeze()
+    chan1DS=signal.resample_poly(chan1,1,25000) 
+    chan1DSBin = chan1DS > 0.03
+
+    opTableStim=pd.DataFrame({})
+
+
+    if ledStimFlag and chan1DSBin.sum() > 200:
+        #print('Max val LED stim channel: ', dct['head12']['max'])
+        chan12=data[ledStimInd].squeeze()
+        chan12DS=signal.resample_poly(chan12,960,1000000)
+        chan12DSBin = chan12DS > 10000
+        chan12DSBin=chan12DSBin.astype(int)
+
+        chan12DSBin=chan12DSBin[:chan1DSBin.shape[0]]
+        chan12DSBin=chan12DSBin[chan1DSBin]
+        opTableStim['ledStim'] = chan12DSBin
+    else:
+        err = err+'#ledStim channel empty or fewer than 200 triggers#'
+        #print('Max val LED stim channel: ', dct['head12']['max'])
+        #print('Num trigs in downsampled channel 1: ', chan1DSBin.sum())
+         
+
+    if pawStimFlag and (chan1DSBin.sum() == 600):
+        chan13=data[pawStimInd].squeeze()
+        chan13DS=signal.resample_poly(chan13,960,1000000)
+        chan13DSBin = chan13DS > 10000
+        chan13DSBin=chan13DSBin.astype(int)
+        chan13DSBin=chan13DSBin[:chan1DSBin.shape[0]]
+        chan13DSBin=chan13DSBin[chan1DSBin]
+        opTableStim['pawStim'] = chan13DSBin
+    #else:
+    #    err = err+'#pawStim channel empty or not exactly 600 triggers#'
+
+    if len(opTableStim.columns) == 0:
+        opTableStim = False   
+
+    if err == '':
+        err = '#no error#'
+
+    return opTableOptical, opTableStim, consecutiveTriggers, err
+
+
+
+
+
+
+
+def smrToTable2(smrPath, trigName = 'Trigger', cyanName = 'LED1', uvName = 'LED2', ledStimName = 'stim_LED', pawStimName = 'stim_Paw'):
+   
+    
+    readSmr = neo.io.CedIO(smrPath)
+    blockObj = readSmr.read(lazy=False)[0]
+    data = [np.array(asig.data).squeeze() for seg in blockObj.segments for asig in seg.analogsignals]
+    infoDf = pd.DataFrame(np.array([sc for sc in readSmr.header['signal_channels']]))
+
+
+
+    err=''
+
+    if all([chanName in infoDf.name.values for chanName in [trigName,cyanName,uvName]]):
+        
+
+
+        trigInd = int(infoDf[infoDf.name == trigName].stream_id.values[0])
+        led1Ind = int(infoDf[infoDf.name == cyanName].stream_id.values[0])
+        led2Ind = int(infoDf[infoDf.name == uvName].stream_id.values[0])
+
+        channelCheck = [data[ind].squeeze().max()> 4 for ind in [trigInd,led1Ind,led2Ind]]
+
+        if all(channelCheck):
+
+            chan1bin=data[trigInd].squeeze() > 4
+            findx=np.where(chan1bin)
+            findx=findx[0]
+            firstTrigStart=findx[0]
+            lastTrigStart=findx[-249]
+
+            if (lastTrigStart - firstTrigStart)/25000 > 550:
+
+                #chan1xbin=chan1bin(findx(1):findx(end)+24749);
+                #y=downsample(chan1xbin,250);
+
+                chan3bin=np.squeeze(data[led1Ind] > 4)
+                chan3bin=chan3bin[firstTrigStart:lastTrigStart+24999]
+                chan3bin=chan3bin*2
+
+                chan4bin=np.squeeze(data[led2Ind] > 4)
+                chan4bin=chan4bin[firstTrigStart:lastTrigStart+24999]
+
+                if chan4bin.shape[0] > chan3bin.shape[0]:
+                    chan4bin = chan4bin[:chan3bin.shape[0]]
+                elif chan4bin.shape[0] < chan3bin.shape[0]:
+                    chan3bin = chan3bin[:chan4bin.shape[0]]
+        
+
+                combineLED=chan3bin+chan4bin
+                combineLEDDiff = np.diff(combineLED)
+                combineLEDNonzeroDiff = np.where(combineLEDDiff)[0]
+
+                compressCombineLED = combineLED[combineLEDNonzeroDiff]
+
+                nonZeroTrigs = np.where(compressCombineLED)[0]
+
+                opticalOrder = compressCombineLED[nonZeroTrigs]
+                   
+                whereConsec = np.diff(opticalOrder.squeeze()) == 0
+                
+                sumConsecTrigs=np.sum(np.diff(opticalOrder.squeeze()) == 0) 
+                
+                whereConsec = np.insert(whereConsec,False,False,axis=0)
+
+                if len(whereConsec) != len(opticalOrder):
+                    raise Exception('Consecutive trigger mask different length to trigger array')
+
+                opTableOptical=pd.DataFrame({'opticalOrder':opticalOrder})
+
+            else:
+                opTableOptical = False
+                sumConsecTrigs = 0
+                whereConsec = None
+        else:
+            opTableOptical = False
+            sumConsecTrigs = 0
+            whereConsec = None
+
+    else:
+        opTableOptical = False
+        sumConsecTrigs = 0
+        whereConsec = None
+
+
+    return opTableOptical,False,sumConsecTrigs,whereConsec
 
 
 def getNframesTif(tifPath):
@@ -1010,7 +1240,7 @@ if __name__ == '__main__':
 
     # This is the ideal template for what tiff files will exist in the organized directory
     # e.g. seven EPIs, with three parts each
-    template = [['EPI'+str(eN)+'_','part-0'+str(pn)] for eN in range(1,20) for pn in range(0,3)]
+    template = [['EPI'+str(eN)+'_','part-0'+str(pn)] for eN in range(1,20) for pn in range(0,4)]
 
 
 
@@ -1018,7 +1248,7 @@ if __name__ == '__main__':
     for sesh in sesGlob:
 
         # Grab the .mat trigger files and the tiffs
-        spikeMats = natsort.natsorted(glob.glob(sesh+'*.mat'))
+        spikeMats = natsort.natsorted(glob.glob(sesh+'*.smr'))
         tifFiles = natsort.natsorted(glob.glob(sesh+'*.tif'))
 
 
@@ -1140,12 +1370,12 @@ if __name__ == '__main__':
                     print(k)
                     print(''.join([c+'\n' for c in connDct[k]]))
                     # Generate dataframe from mat file
-                    opTableOptical,opTableStim,consecTrigs,err = matToTable(k)
+                    opTableOptical,opTableStim,consecTrigs,err = smrToTable(k)
 
 
                     # If that didnt work try to do without channel 1 in smr file
                     if type(opTableOptical) != pd.core.frame.DataFrame:
-                        opTableOptical,opTableStim,consecTrigs,consecTrigMask = matToTable2(k)
+                        opTableOptical,opTableStim,consecTrigs,consecTrigMask = smrToTable2(k)
 
 
                     # Write stim file if it was determined
@@ -1473,10 +1703,10 @@ if __name__ == '__main__':
         print('Creating reference images')
 
         sesGlobStr = os.path.join(opDir,matchTemplate)
-        sesGlob = glob.glob(sesGlobStr)
+        sesGlob = natsort.natsorted(glob.glob(sesGlobStr))
 
         for sG in sesGlob:
-            for root,dirs,fs in os.walk(sG):
+            for root,dirs,fs in natsort.natsorted(os.walk(sG)):
                 for f in fs:
                     if f == 'rawsignl.nii.gz' and all([x in root for x in ['EPI1_','part-00']]):
 
@@ -1491,14 +1721,21 @@ if __name__ == '__main__':
 
                             midFrame = round(imgData.shape[2]/2)
 
-                            mcRefArr = imgData[:,:,midFrame]
+                            mcRefArr = np.expand_dims(imgData[:,:,midFrame],axis=2)
+
+
 
 
                             opImg = nb.Nifti1Image(mcRefArr, imgObj.affine, header = imgObj.header)
 
 
-                            print('Saving moco ref image:', opname)
+                            print('Saving moco ref image as LPS:', opname)
                             nb.save(opImg, opname)
+
+                            print( 'Saving moco ref image as RPI:', opname.replace('.nii.gz','RPI.nii.gz') )
+                            nb.save(opImg.slicer[::-1,:,::-1], opname.replace('.nii.gz','RPI.nii.gz'))
+
+
 
                             if refImg100Flag == 1:
                                 mcRefArr100 = imgData[:,:,midFrame-50:midFrame+50]
