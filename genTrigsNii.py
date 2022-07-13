@@ -26,6 +26,7 @@ import logging
 
 import neo
 
+import yaml
 
 if (os.name == 'posix' and "DISPLAY" in os.environ) or (os.name == 'nt'):
     from matplotlib import pyplot as plt
@@ -968,8 +969,17 @@ def splitTif(tifPath, trigFilePath, mcRef = False):
     else:
         return blueMovie,uvMovie
     
-def saveNiiLPS(arr,opname):
+def saveNiiLPS(arr, opname, pixDimsOp = [0.025,0.025,0.025,1,1],orient = 'rps'):
     
+    orient = orient.lower()
+
+    orientCheck = [orient[0] in ['r','l'], orient[1] in ['a','p'],  orient[2] in ['s','i'] ]
+
+    if len(orient) != 3 or type(orient) != str or not all(orientCheck):
+        raise Exception('orient variable must be a string that matches nifti orientation convention and have three characters exactly e.g. "rps", "lai"')
+
+
+
     arr = arr.squeeze()
     
     imgShape = arr.shape
@@ -984,22 +994,28 @@ def saveNiiLPS(arr,opname):
     elif len(imgShape) == 4:
         pass
 
-
-
     # Op nifti configs
-    dimsOp = [0.025,0.025,0.025,1]
     aff = np.eye(4)
-    aff[1,1] = -1
-    aff[2,2] = -1
-    aff = aff * 0.025
-    aff[3,3] = 1
+    for i in range(0,3):
+        aff[i,i] = pixDimsOp[i]
+    
+    negStrList = ['l','p','i']
+
+    for i, nSL in enumerate(negStrList):
+        if orient[i] == nSL:
+            aff[i,i] = -aff[i,i]   
 
     out_image = nb.Nifti1Image(arr, aff)
-    out_image.header.set_zooms(dimsOp)
+    out_image.header.set_zooms(pixDimsOp)
     
-    out_image = out_image.slicer[::-1,:,::-1,:]
+    out_imageRAS = nb.as_closest_canonical(out_image)
+
+
+
+
+    out_imageLPS = out_imageRAS.slicer[::-1,::-1,:,:]
     
-    nb.save(out_image, opname)
+    nb.save(out_imageLPS, opname)
     
     
     return opname
@@ -1190,6 +1206,7 @@ if __name__ == '__main__':
     parser.add_argument('opDir',type=str,help="Path to output directory, often the preprocessing directory")
     parser.add_argument('trigQcDir',type=str,help="Path to folder to put Quality control figures")
     parser.add_argument('trigReplaceDf',type=str,help='Path to csv file which controls the semi automatic generation of trigger files')
+    parser.add_argument('configFile',type=str,help='Path to configuration file (yml)')
     parser.add_argument('--matchTemplate',type=str,help='a string to feed to glob to match certain sessions/cell types for example: SLC/ses-*/animal*/ca2/ will do all SLC data',default='*/*/*/*/')
     parser.add_argument('--refImage',type=str,help='1 to create ref images, 0 otherwise',default=0)
     parser.add_argument('--refImage100',type=str,help='1 to create images of 100 frames centered around the ref images, 0 otherwise',default=0)
@@ -1202,10 +1219,24 @@ if __name__ == '__main__':
     opDir=args.opDir
     trigQcDir=args.trigQcDir
     trigReplaceDfPath=args.trigReplaceDf
+    configFile = args.configFile
     trigFixQcDir=os.path.join(trigQcDir,'triggerFix')
     matchTemplate=args.matchTemplate
     refImageFlag = int(args.refImage)
     refImg100Flag = int(args.refImage100)
+
+    with open(configFile) as f:
+        configDct = yaml.load(f,Loader = yaml.Loader)
+
+
+    ### Extract config details
+
+    pixDims = configDct['pixelDimensions']
+    orient = configDct['orientation']
+    chanDefs = configDct['channelDefinitions']
+    nRuns = configDct['nRuns']
+    nParts = configDct['nParts']
+
 
     if not os.path.isdir(trigFixQcDir):
         os.makedirs(trigFixQcDir)
@@ -1240,7 +1271,7 @@ if __name__ == '__main__':
 
     # This is the ideal template for what tiff files will exist in the organized directory
     # e.g. seven EPIs, with three parts each
-    template = [['EPI'+str(eN)+'_','part-0'+str(pn)] for eN in range(1,20) for pn in range(0,4)]
+    template = [['EPI'+str(eN)+'_','part-0'+str(pn)] for eN in range(1,nRuns+1) for pn in range(0,nParts)]
 
 
 
@@ -1370,12 +1401,16 @@ if __name__ == '__main__':
                     print(k)
                     print(''.join([c+'\n' for c in connDct[k]]))
                     # Generate dataframe from mat file
-                    opTableOptical,opTableStim,consecTrigs,err = smrToTable(k)
+                    opTableOptical,opTableStim,consecTrigs,err = smrToTable(k, trigName = chanDefs['mrTrigger'], \
+                                            cyanName = chanDefs['wavelength1'], uvName = chanDefs['wavelength2'], \
+                                            ledStimName = chanDefs['ledStim'], pawStimName = chanDefs['pawStim'])
 
 
                     # If that didnt work try to do without channel 1 in smr file
                     if type(opTableOptical) != pd.core.frame.DataFrame:
-                        opTableOptical,opTableStim,consecTrigs,consecTrigMask = smrToTable2(k)
+                        opTableOptical,opTableStim,consecTrigs,consecTrigMask = smrToTable2(k, trigName = chanDefs['mrTrigger'], \
+                                            cyanName = chanDefs['wavelength1'], uvName = chanDefs['wavelength2'], \
+                                            ledStimName = chanDefs['ledStim'], pawStimName = chanDefs['pawStim'])
 
 
                     # Write stim file if it was determined
@@ -1468,10 +1503,10 @@ if __name__ == '__main__':
 
                                         else:
                                             print('##### Writing data to: ', opPathSignal)
-                                            saveNiiLPS(signalMovie, opPathSignal)
+                                            saveNiiLPS(signalMovie, opPathSignal, pixDimsOp = pixDims, orient = orient)
 
                                             print('##### Writing data to: ', opPathNoise)
-                                            saveNiiLPS(noiseMovie, opPathNoise)
+                                            saveNiiLPS(noiseMovie, opPathNoise, pixDimsOp = pixDims, orient = orient)
 
                                     else:
                                         print('Nii files already exist: ', opPathSignal, opPathNoise)
@@ -1675,10 +1710,10 @@ if __name__ == '__main__':
 
                             else:
                                 print('##### Writing data to: ', opPathSignal)
-                                saveNiiLPS(signalMovie, opPathSignal)
+                                saveNiiLPS(signalMovie, opPathSignal, pixDimsOp = pixDims, orient = orient)
 
                                 print('##### Writing data to: ', opPathNoise)
-                                saveNiiLPS(noiseMovie, opPathNoise)
+                                saveNiiLPS(noiseMovie, opPathNoise, pixDimsOp = pixDims, orient = orient)
 
                                 #else:
                                 #    print('Files already exist: ', opPathSignal, opPathNoise)
